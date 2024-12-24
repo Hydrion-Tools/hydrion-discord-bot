@@ -19,7 +19,7 @@ client.prefixCommands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-const enable_slash = config['enabled-slash-command'];
+const enable_slash = config['enable-slash-command'];
 const enabled_prefix = config['enable-prefix-command'];
 const prefix = config.prefix || '!';
 const commands = [];
@@ -46,15 +46,24 @@ for (const file of commandFiles) {
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 async function registercmd() {
-    if (enable_slash) {
-        try {
+    try {
+        if (enable_slash) {
+            console.log('Registering application (/) commands.');
             await rest.put(
                 Routes.applicationCommands(process.env.CLIENT_ID),
                 { body: commands }
             );
-        } catch (error) {
-            console.error(error);
-        }
+            console.log('Successfully registered application (/) commands.');
+        } else if (!enable_slash) {
+            console.log('Disabling all application (/) commands.');
+            await rest.put(
+                Routes.applicationCommands(process.env.CLIENT_ID),
+                { body: [] }
+            );
+            console.log('Successfully removed all application (/) commands.');
+        }        
+    } catch (error) {
+
     }
 }
 
