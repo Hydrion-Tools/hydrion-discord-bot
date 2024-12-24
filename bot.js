@@ -20,6 +20,8 @@ const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 const enable_slash = config['enabled-slash-command'];
+const enabled_prefix = config['enable-prefix-command'];
+const prefix = config.prefix || '!';
 const commands = [];
 
 for (const file of commandFiles) {
@@ -29,24 +31,27 @@ for (const file of commandFiles) {
     if (command.data) {
         client.commands.set(command.data.name, command);
         commands.push(command.data.toJSON());
-    } else if (command.name) {
+    }
+
+    if (command.name) {
         client.prefixCommands.set(command.name, command);
+        if (command.aliases) {
+            command.aliases.forEach(alias => {
+                client.prefixCommands.set(alias, command);
+            });
+        }
     }
 }
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 async function registercmd() {
-    if (enable_slash === true) {
+    if (enable_slash) {
         try {
-            console.log('Started refreshing application (/) commands.');
-
             await rest.put(
                 Routes.applicationCommands(process.env.CLIENT_ID),
                 { body: commands }
             );
-
-            console.log('Successfully reloaded application (/) commands.');
         } catch (error) {
             console.error(error);
         }
@@ -57,7 +62,6 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
-
     if (!command) return;
 
     try {
@@ -67,25 +71,20 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
     }
 });
-const enabled_prefix = config.enable-prefix-command;
-const prefix = config.prefix || '!';
 
 client.on('messageCreate', async message => {
-    if (enabled_prefix === true) {
-        if (message.author.bot || !message.content.startsWith(prefix)) return;
+    if (!enabled_prefix || message.author.bot || !message.content.startsWith(prefix)) return;
 
-        const args = message.content.slice(prefix.length).trim().split(/ +/);
-        const commandName = args.shift().toLowerCase();
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+    const command = client.prefixCommands.get(commandName);
+    if (!command) return;
 
-        const command = client.prefixCommands.get(commandName);
-        if (!command) return;
-
-        try {
-            await command.execute(message, args);
-        } catch (error) {
-            console.error(error);
-            message.reply('There was an error while executing this command!');
-        }
+    try {
+        await command.execute(message, args);
+    } catch (error) {
+        console.error(error);
+        message.reply('There was an error while executing this command!');
     }
 });
 
