@@ -85,7 +85,54 @@ module.exports = {
       return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
     }
 
-    const timeoutDuration = duration * 1000; // Convert to milliseconds
+    if (!user.roles || user.roles.cache.size === 0) {
+      return interactionOrMessage.reply({
+        content: 'This user does not have any roles assigned.',
+        ephemeral: true,
+      });
+    }
+
+    if (!duration || isNaN(duration)) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('❌ Error')
+        .setDescription('Please give a valid time in miliseconds')
+        .setTimestamp();
+      return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+    }
+    
+    if (!user.roles || !user.roles.highest) {
+      return interactionOrMessage.reply({ content: 'Could not retrieve roles for this member.', ephemeral: true });
+    }
+
+    if (!interactionOrMessage.guild.me.permissions.has(PermissionsBitField.Flags.MuteMembers)) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('❌ Error')
+        .setDescription('I do not have permission to mute members.')
+        .setTimestamp();
+      return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    if (interactionOrMessage.guild.me.roles.highest.position <= user.roles.highest.position) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('❌ Error')
+        .setDescription('I cannot mute this member because they have a higher or equal role than me.')
+        .setTimestamp();
+      return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    if (!user.moderatable) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('❌ Error')
+        .setDescription('I cannot mute this member because they are not moderatable.')
+        .setTimestamp();
+      return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    const timeoutDuration = duration * 1000;
     try {
       await member.timeout(timeoutDuration, reason);
 

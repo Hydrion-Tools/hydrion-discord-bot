@@ -2,8 +2,8 @@
   "enable-slash-command": true,
   "enable-prefix-command": true,
   "prefix": "?",
-  "enabled-logging": false,
-  "webhook": "",
+  "enabled-logging": true,
+  "webhook": "https://discord.com/api/webhooks/1321483524364173322/rP0-zmu19lL1mFsIaUBYxRSRtv5964rB1FsUTykY-mfNv0x8hXNdMeUWV8DBPlMbOPpP",
   "devname": "HYDRA_DEVX",
   "devavatar": "https://cdn.discordapp.com/attachments/1310116939565240394/1320986662611714180/1781a552-aa43-4d60-a72d-6c05edad5499.jpg?ex=676b9833&is=676a46b3&hm=3c30fb3abc49908990df142812950196c92902b597089ac753cf3bdeafd9e548&"
 }

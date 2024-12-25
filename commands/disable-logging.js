@@ -2,68 +2,82 @@ const { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } = require('disc
 const fs = require('fs');
 const path = require('path');
 
-const configPath = path.join(__dirname, '../config.json');  // Update this path
+const configPath = path.join(__dirname, '../config.json');
 
 module.exports = {
   name: 'disable-logging',
   data: new SlashCommandBuilder()
     .setName('disable-logging')
     .setDescription('Disable logging for actions in the server.'),
-  async execute(interactionOrMessage) {
+  async execute(interaction) {
     try {
-      const config = require(configPath);
-
-      if (!interactionOrMessage.guild) {
-        const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('❌ Error')
-          .setDescription('This command cannot be used in DMs.')
-          .setTimestamp();
-        return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+      if (!interaction.guild) {
+        return interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('#FF0000')
+              .setTitle('❌ Error')
+              .setDescription('This command cannot be used in DMs.')
+              .setTimestamp(),
+          ],
+          ephemeral: true,
+        });
       }
 
-      if (!interactionOrMessage.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('❌ Error')
-          .setDescription('You do not have permission to use this command.')
-          .setTimestamp();
-        return interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+      if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('#FF0000')
+              .setTitle('❌ Error')
+              .setDescription('You do not have permission to use this command.')
+              .setTimestamp(),
+          ],
+          ephemeral: true,
+        });
       }
 
-      // Disable logging
+      let config = {};
+      if (fs.existsSync(configPath)) {
+        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      }
+
       config['enabled-logging'] = false;
-      config.webhook = null;  // Clear the webhook URL in the config
+      config.webhook = null;
 
-      // Write to config.json
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-      // Find and delete the logs channel and webhook
-      const logChannel = interactionOrMessage.guild.channels.cache.find(c => c.name === 'logs');
+      const logChannel = interaction.guild.channels.cache.find((c) => c.name === 'logs');
       if (logChannel) {
         const webhooks = await logChannel.fetchWebhooks();
-        const webhook = webhooks.first(); // Assuming only one webhook is created
+        const webhook = webhooks.first();
         if (webhook) {
-          await webhook.delete('Logging disabled');  // Delete the webhook
+          await webhook.delete('Logging disabled');
         }
-        await logChannel.delete('Logging disabled');  // Delete the channel
+        await logChannel.delete('Logging disabled');
       }
 
-      // Send success embed
-      const embed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('✅ Logging Disabled')
-        .setDescription('Logging has been successfully disabled, and the log channel has been deleted.')
-        .setTimestamp();
-      interactionOrMessage.reply({ embeds: [embed] });
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('✅ Logging Disabled')
+            .setDescription('Logging has been successfully disabled, and the log channel has been deleted.')
+            .setTimestamp(),
+        ],
+      });
     } catch (error) {
       console.error(error);
-      const embed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('❌ Error')
-        .setDescription('There was an issue disabling logging.')
-        .setTimestamp();
-      interactionOrMessage.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('❌ Error')
+            .setDescription('There was an issue disabling logging.')
+            .setTimestamp(),
+        ],
+        ephemeral: true,
+      });
     }
   },
 };
